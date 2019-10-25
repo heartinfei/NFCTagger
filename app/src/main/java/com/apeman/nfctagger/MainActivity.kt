@@ -6,37 +6,46 @@ import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.NfcF
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var intentFiltersArray:Array<IntentFilter>
     private val techListsArray = arrayOf(arrayOf(NfcF::class.java.name))
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        val intent = Intent(this, javaClass).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        var pendingIntent: PendingIntent = PendingIntent.getActivity(this,
-            0,
-            intent,
-            0)
+    private val adapter: NfcAdapter by lazy {
+        NfcAdapter.getDefaultAdapter(this)
+    }
 
-        val ndef = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED).apply {
+    private val pendingIntent: PendingIntent by lazy {
+        Intent(this, javaClass).apply {
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }.let {
+            PendingIntent.getActivity(
+                this,
+                0,
+                it,
+                0
+            )
+        }
+    }
+
+    private val intentFiltersArray: Array<IntentFilter> by lazy {
+        IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED).apply {
             try {
-                addDataType("*/*")    /* Handles all MIME based dispatches.
-                                 You should specify only the ones that you need. */
+                /* Handles all MIME based dispatches.
+                 * You should specify only the ones that you need. */
+                addDataType("*/*")
             } catch (e: IntentFilter.MalformedMimeTypeException) {
                 throw RuntimeException("fail", e)
             }
+        }.let {
+            arrayOf(it)
         }
-
-        intentFiltersArray = arrayOf(ndef)
     }
 
-    private val adapter:NfcAdapter by lazy {
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
     }
 
     public override fun onNewIntent(intent: Intent) {
@@ -48,7 +57,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        adapter.enableForegroundDispatch(this, pendingIntent, intentFiltersArray, techListsArray)
+        adapter.enableForegroundDispatch(this,
+            pendingIntent,
+            intentFiltersArray,
+            techListsArray)
     }
 
     override fun onPause() {
